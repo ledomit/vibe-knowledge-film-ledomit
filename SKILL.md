@@ -1,10 +1,11 @@
 ---
-name: vibe-knowledge-film
+name: vibe-knowledge-film-ledomit
 description: >
   抖音「Vibe知识大赏」式的无旁白知识短片：2–5 分钟、16:9、没有人声，观众读底部一行字幕，同时看屏上把这句话演出来。
   核心是讲解设计：给每个概念找一个外行认得的形象，画得像它本身（不用点、线、圈代替），句子里说到什么屏上就是什么、动词真的发生；
   提问、命名、结论不硬配图。全片由代码逐帧画出（Canvas + seek(t) + Playwright + ffmpeg）。
-  内含四条参考片的逐句拆解、六种画法、找形象的方法、分镜表格式、两套外观、渲染引擎和合成配乐。
+  内含四条参考片的逐句拆解、六种画法、找形象的方法、分镜表格式、三套外观（C 夜曲、B 寓言、ledo）、渲染引擎和合成配乐。
+  ledo 是飞行少年v（ledomit）加的外观：真实图片 / 真实影像 + 矢量动画混排、左下竖线字幕、金色大年份、右上角"@飞行少年v"品牌角标和片尾 logo，适合科学史、人物故事、需要"这是真的"的题目。
   用户说"做一条 vibe 知识大赏的视频""像《信息论·惊奇之学》《运气的形状》《超常刺激》《自指》那样的片子""代码直出的知识短片""没有旁白的字幕科普片""把这个概念直观地讲清楚"，
   或者给了一个题目、一份文案要做成这种片子时使用。只做 16:9 横屏。有人声口播的讲解片不用这个。
 ---
@@ -119,14 +120,18 @@ description: >
 |---|---|
 | 一个心理 / 行为机制，从动物或生活场景讲到"你该怎么办" | B 寓言 |
 | 一个抽象概念或一个看不见的机制，拆成几个当场可演的小实验 | C 夜曲 |
+| 一段科学史 / 人物故事 / 需要真实照片、论文、真实影像来证明"这是真的" | **ledo**（飞行少年v） |
 
-只有这两套。它们的色、字、版式、常驻元素、片名卡、声音都在 `references/worlds.md`。拿不准选 C；B 最费工。
+一共三套。ledo 的规格在 `references/worlds.md` 的 ledo 一节，件在 `engine/vk-ledo.js`（用法见 `references/engine.md`），来源拆解在 `references/ledo-reference-breakdown.md`。
+ledo 默认带品牌：右上角"@飞行少年v"+ 圆形头像（`engine/brand/`），片尾 logo 动画；真实图片放进工程的 `assets/`，用之前确认来源和授权，片尾文献线索写清出处。
+
+原来只有这两套（B、C）。它们的色、字、版式、常驻元素、片名卡、声音都在 `references/worlds.md`。拿不准选 C；B 最费工。
 同时定下颜色的含义，全片不破例。
 
 ### 5. 建工程，先做最难的一镜
 
 ```bash
-python scripts/new_film.py <工程目录> --world C      # 或 B
+python scripts/new_film.py <工程目录> --world C      # 或 B；ledo 用 L
 python engine/render.py <工程目录> --sheet 3 8 15 22  # 指定时刻拼一张；--sheet 16 是均匀 16 帧
 python engine/render.py <工程目录> --stills 5.9 18.1  # 原尺寸截几帧
 python engine/render.py <工程目录> --motion 8.2 10.6  # 这段时间里取 12 帧拼一张，看转场
@@ -206,6 +211,7 @@ python engine/render.py <工程目录> --jobs 4           # 全片，4 路并行
 | `references/analysis.md` | 四条参考片的结构、节奏、制作痕迹（外观和技术层面） |
 | `references/prompts.md` | 逆向出的提示词：完整 brief、分步提示词、返工话术 |
 | `references/engine.md` | 引擎 API、命令、写法、坑 |
-| `engine/` | `vk.js` `vk-kit.js` `render.py` `audio.py` `get_fonts.py` |
+| `engine/` | `vk.js` `vk-kit.js` `vk-ledo.js`（ledo 的件）`render.py` `audio.py` `get_fonts.py`；`engine/brand/` 是飞行少年v 的 logo 和署名 |
+| `references/ledo-reference-breakdown.md` | ledo 的来源：一条 VibeSCI 参考片的分镜、卡点、动画、logo 拆解 |
 | `scripts/new_film.py` | 建工程：`index.html` + 一份没有画面的 `film.js` 骨架 |
 | `examples/` | 看别人怎么做过一次，不是零件库。`fold_C`（夜曲，《折叠》开头 33 秒）和 `pigeon_B`（寓言，《鸽子的迷信》开头 33 秒）：自己题目的样片，各带分镜表；`fold_old_vs_new.jpg`：同一段内容的两版对照；两段对照参考片做的复刻；一张货架图；`look_*.jpg` 是各自的拼图 |

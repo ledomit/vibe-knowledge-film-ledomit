@@ -1,4 +1,13 @@
-# vibe-knowledge-film
+# vibe-knowledge-film-ledomit
+
+> 这是 [HeyChengC/vibe-knowledge-film](https://github.com/HeyChengC/vibe-knowledge-film) 的分支，由 **飞行少年v**（[ledomit](https://github.com/ledomit)）维护。保留原来的「夜曲」「寓言」两种风格，新增第三种 **ledo**：真实图片 / 真实影像 + 动画混排、左下竖线字幕、金色大年份、右上角品牌角标和片尾 logo（来源拆解见 `references/ledo-reference-breakdown.md`）。另外修了两处：`render.py` 并行渲染会卡住、`new_film.py` 在 Python 3.9 上报错。
+>
+> ![ledo 示例](examples/look_ledo.jpg)
+>
+> 用法：`python scripts/new_film.py <工程目录> --world L`，示例工程在 `examples/ledo_demo/`。安装时文件夹名用 `vibe-knowledge-film-ledomit`。
+
+## 原版说明
+
 
 你一定见过这种视频。最近抖音上爆火的 Vibe 知识大赏，看完收获满满。
 

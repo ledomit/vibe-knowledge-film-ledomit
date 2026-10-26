@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """建一个新片工程：
-  python new_film.py <工程目录> --world C|B [--force]
-C 夜曲（抽象概念、看不见的机制）· B 寓言（心理和行为机制）。怎么选见 references/worlds.md。
+  python new_film.py <工程目录> --world C|B|L [--force]
+C 夜曲（抽象概念、看不见的机制）· B 寓言（心理和行为机制）· L ledo（真实图片 + 叙事史，飞行少年v 出品）。怎么选见 references/worlds.md。
 
 工程里是 index.html 和一份只能跑起来的 film.js 骨架——里面一行画面都没有。
 文案不同，屏上的东西就不同，代码也不同：每一镜照 storyboard.md 现写，不要从别的片子里搬画面。
@@ -43,17 +43,54 @@ VK.film({{
 }})();
 """
 
+LEDO_SKELETON = """/* ★ 片名 · ledo（飞行少年v）
+ * 这是骨架，一行画面都没有。每一镜照 storyboard.md 现写。规格见 references/worlds.md 的 ledo 一节，件的用法见 references/engine.md。
+ * 真实图片放进本工程的 assets/，用 L.img('assets/xxx.jpg') 读；logo 和署名默认来自 engine/brand/（飞行少年v）。
+ * 每个场景的函数头上先写一行：这是什么 / 它在干什么 / 观众明白了什么。事实和出处写在这段注释里。 */
+(function () {{
+'use strict';
+const {{ W, H, clamp, lerp, seg, ss, E, fade, rng, rgba, mix }} = VK;
+const K = VKit, L = VKLedo, P = L.PAL;
+L.brandSet();                                              // 读 logo；要换署名：L.brandSet({{ name, handle, logo }})
+
+/* 先量配乐：BPM、第一个下拍。所有时刻由下拍表算出来 */
+const BAR = 60 / 112 * 4, D0 = 0.0, E8 = BAR / 8;
+const DB = k => D0 + k * BAR, SN = k => DB(k) + BAR / 2;
+const T = {{ end: 30 }};
+const SUBS = [                                             // {{ a, b, zh, en? }}；金句加 gold: true（居中金色加大）；zh 里 {{词}} 金色，\\n 换行
+  // {{ a: DB(0), b: DB(1) - .15, zh: '……' }},
+];
+
+function scene1(fr, t) {{
+}}
+
+VK.film({{
+  dur: T.end, theme: 'ledo', bloom: .35, meta: {{ title: '' }},
+  draw(fr, t) {{
+    L.frame(fr);                                           // 每帧先调：照片、设备这些实心的东西走底层
+    scene1(fr, t);
+    L.brand(fr, t);                                        // 右上角 @飞行少年v + 头像
+    L.sub(fr, t, SUBS);                                    // 字幕永远最后画
+  }},
+}});
+}})();
+"""
+
 if __name__ == "__main__":
     a = sys.argv[1:]
     if len(a) < 1 or a[0].startswith("-"): sys.exit(__doc__)
     proj = Path(a[0]).resolve(); world = (a[a.index("--world") + 1] if "--world" in a else "C").upper()
-    if world not in WORLD: sys.exit("--world 只能是 C 或 B")
+    if world not in WORLD and world != "L": sys.exit("--world 只能是 C、B 或 L")
     proj.mkdir(parents=True, exist_ok=True)
     film = proj / "film.js"
     if film.exists() and "--force" not in a: sys.exit(f"{film} 已经存在。要覆盖加 --force")
-    name, theme, subs, pal, standing = WORLD[world]
     shutil.copy(ROOT / "engine/index.html", proj / "index.html")
-    film.write_text(SKELETON.format(name=name, theme=theme, subs=subs, pal=pal, standing=standing, en=", en: '……'" if world == "C" else ""), encoding="utf-8", newline="\n")
+    if world == "L":
+        name = "L ledo"; text = LEDO_SKELETON.format(); (proj / "assets").mkdir(exist_ok=True)
+    else:
+        name, theme, subs, pal, standing = WORLD[world]
+        text = SKELETON.format(name=name, theme=theme, subs=subs, pal=pal, standing=standing, en=", en: '……'" if world == "C" else "")
+    with open(film, "w", encoding="utf-8", newline="\n") as f: f.write(text)      # Python 3.9 的 write_text 不支持 newline
     render = ROOT / "engine/render.py"
     print(f"建好了：{proj}（{name}）\n"
           f"  预览  python \"{render}\" \"{proj}\" --serve\n"

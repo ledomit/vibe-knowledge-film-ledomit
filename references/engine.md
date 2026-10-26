@@ -242,6 +242,40 @@ function urn(fr, t) {
 货架就这么大。每条片各自的装置（陶瓮、信封、表格、DNA）在自己的 `film.js` 里用 `fr` 现画——
 一个装置通常 20–40 行。画之前先翻 `examples/` 里有没有相近的。
 
+## ledo 的件：`VKLedo`（`engine/vk-ledo.js`）
+
+页面模板已经引入。`new_film.py --world L` 生成的骨架就是下面这个样子：
+
+```js
+const L = VKLedo; L.brandSet();                       // 读 logo（engine/brand/logo_circle.png）；换署名：L.brandSet({ name, handle, logo })
+const pic = L.img('assets/xxx.jpg');                  // 真实图片：读完才放行渲染（READY 会等它）
+VK.film({ dur, theme: 'ledo', bloom: .35, draw(fr, t) {
+  L.frame(fr);                                        // 每帧先调：照片、设备这些实心的东西走底层队列
+  …
+  L.brand(fr, t);                                     // 右上角 @飞行少年v + 头像
+  L.sub(fr, t, SUBS);                                 // 字幕最后画
+} });
+```
+
+| | |
+|---|---|
+| `L.sub(fr, t, list, o)` | `{ a, b, zh, en?, gold?, size? }`。普通句左下左对齐 + 金色竖线，`\n` 换行，`{词}` 金色；`gold: true` 居中金色加大（金句）。整行出（0.18 s） |
+| `L.brand(fr, t, o)` | 右上角品牌角标。`o.a` 透明度、`o.t0` 淡入时刻 |
+| `L.watermark(fr, o)` | 中间斜向淡水印 |
+| `L.endLogo(fr, lt, o)` | 片尾 logo 动画，`lt` 本地时间：弧光画圆（0–0.8）→ 头像（0.6–1.2）→ 名字（1.0–1.5）；`o.line` 副题 |
+| `L.photo(fr, img, o)` | 真实图片：`{ x, y, w, rot, style: 'polaroid'|'tape'|'clip'|'clean', a, s, caption, crop }`，带阴影 |
+| `L.footage(fr, t, o, content)` | 真实影像小窗：`{ t0, t1, x, y, w, h, label, en, marks: [[u, v, n]], src }`；`content` 是图片句柄（自动慢推）或画法函数 `(ctx, x, y, w, h, lt)` |
+| `L.marker(fr, x, y, n, o)` | 编号圈 |
+| `L.year(fr, t, o)` | 金色大年份：`{ t0, t1, year, cap, x, y, size, align }` |
+| `L.callout(fr, t, o)` | 引线标注：`{ t0, t1, x, y, tx, ty, zh, en }` |
+| `L.checklist(fr, t, o)` | 步骤清单：`{ x, y, items, times, t1 }`，逐条点亮 |
+| `L.crt(fr, o)` | CRT 显示器，返回屏幕矩形 `[x, y, w, h]` 给你往里画 |
+| `L.clock(fr, o)` | 秒表：`{ x, y, r, value 0..1, label }` |
+| `L.filmstrip(fr, t, o)` | 胶片条：`{ y, h, speed, frames: [图片句柄] }` |
+| `L.PAL` / `L.BRAND` | 色板 / 署名 |
+
+`L.img` 读的图片路径相对工程目录（`assets/…`）；品牌图片在 `engine/brand/`，由 render.py 挂在 `/engine/` 下。
+
 ## 容易踩的坑
 
 - **字幕区被占。** 纵向 80%–95% 只属于字幕。装置的最低点不要低于 y=840。

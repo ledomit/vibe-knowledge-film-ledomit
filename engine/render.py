@@ -33,9 +33,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store"); super().end_headers()
     def log_message(self, *a): pass
 
+class Server(http.server.ThreadingHTTPServer):
+    # 默认积压队列只有 5：Chrome 一口气请求 8 个字体 + 脚本，--jobs 并行时 CPU 一忙就来不及 accept，
+    # 多出来的连接被内核 RESET，字体加载失败，READY 永远等不到
+    request_queue_size = 128
+
 def serve(proj, port=0):
     h = type("H", (Handler,), {"proj": proj})
-    srv = http.server.ThreadingHTTPServer(("127.0.0.1", port), h)
+    srv = Server(("127.0.0.1", port), h)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, f"http://127.0.0.1:{srv.server_address[1]}/"
 
@@ -108,7 +113,10 @@ def frames_parallel(proj, out, jobs):
         name = f"_part{i:02d}"; parts.append(proj / f"renders/{name}.mp4")
         procs.append(subprocess.Popen([sys.executable, str(Path(__file__).resolve()), str(proj), "--clip", repr(cuts[i] / fps), repr(cuts[i + 1] / fps), name],
                                       stdout=subprocess.DEVNULL if i else None))
-    if any(p.wait() for p in procs): sys.exit("有一段渲染失败了，先单独跑 --clip 看报错")
+    for p in procs:
+        if p.wait():
+            for q in procs: q.kill()   # 别留下没人管的其余各段
+            sys.exit("有一段渲染失败了，先单独跑 --clip 看报错")
     lst = proj / "renders/_parts.txt"; lst.write_text("".join(f"file '{p.as_posix()}'\n" for p in parts), encoding="utf-8")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy", "-movflags", "+faststart", str(out)], check=True)
     for p in parts + [lst]: p.unlink()
