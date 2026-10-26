@@ -4,6 +4,10 @@
 >
 > ![ledo 示例](examples/look_ledo.jpg)
 >
+> ledo 支持纯动画和真实图片 / 真实视频混排：`scripts/extract_frames.py` 把视频拆帧，`L.video` 按时间取帧，`L.pushThrough` / `L.whiteFlash` / `L.grow` 做推进转场。示例《一小步》（NASA 公有领域素材）：`examples/ledo_video_demo/`。
+>
+> ![ledo 真实素材示例](examples/look_ledo_video.jpg)
+>
 > 用法：`python scripts/new_film.py <工程目录> --world L`，示例工程在 `examples/ledo_demo/`。安装时文件夹名用 `vibe-knowledge-film-ledomit`。
 
 ## 原版说明

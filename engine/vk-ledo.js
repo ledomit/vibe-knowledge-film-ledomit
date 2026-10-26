@@ -115,7 +115,8 @@ function footage(fr, t, o, content) {
   const k = E.out3(seg(lt, 0, .35)) * (o.t1 == null ? 1 : 1 - ss(t, o.t1, o.t1 + .3)), w = o.w || 460, h = o.h || 260, x0 = o.x == null ? W - w - 90 : o.x, y0 = o.y == null ? 120 : o.y, s = lerp(.92, 1, k);
   const cx = x0 + w / 2, cy = y0 + h / 2, X = cx - w * s / 2, Y = cy - h * s / 2, ww = w * s, hh = h * s;
   under(x => { x.save(); x.globalAlpha = k; x.fillStyle = '#050506'; x.fillRect(X, Y, ww, hh); x.beginPath(); x.rect(X, Y, ww, hh); x.clip();
-    if (content && content.ok) { const z = 1.04 + .04 * Math.min(1, Math.max(0, lt) / 6); x.drawImage(content.im, cx - ww * z / 2, cy - hh * z / 2, ww * z, hh * z); }
+    if (content && content.frames) drawInto(x, videoFrame(content, lt), [X, Y, ww, hh], { fit: 'cover' });
+    else if (content && content.ok) { const z = 1.04 + .04 * Math.min(1, Math.max(0, lt) / 6); x.drawImage(content.im, cx - ww * z / 2, cy - hh * z / 2, ww * z, hh * z); }
     else if (typeof content === 'function') content(x, X, Y, ww, hh, lt);
     x.restore(); });
   fr.rect(X, Y, ww, hh, { color: PAL.line, w: 1.4, a: .8 * k });
@@ -188,5 +189,47 @@ function filmstrip(fr, t, o = {}) {
     x.restore(); });
 }
 
-G.VKLedo = { PAL, BRAND, brandSet, img, frame, under, sub, brand, watermark, endLogo, photo, footage, marker, year, callout, checklist, crt, clock, filmstrip };
+/* ---------- 真实视频片段：先用 scripts/extract_frames.py 拆成逐帧图片，再按时间取帧（渲染是逐帧 seek，这样每帧都对得上） ----------
+ * const clip = L.video('assets/apollo', 192, 24);   L.videoDraw(fr, clip, lt, [x, y, w, h], { a, fit, round, tint, scan }) */
+function video(dir, n, fps) {
+  const c = { frames: [], n, fps, ok: true, dir };
+  for (let i = 1; i <= n; i++) c.frames.push(img(`${dir}/${String(i).padStart(4, '0')}.jpg`));
+  return c;
+}
+function videoFrame(c, lt) { if (!c || !c.n) return null; const i = clamp(Math.floor(Math.max(0, lt) * c.fps), 0, c.n - 1); return c.frames[i]; }
+/* 把一张图或一段视频画进矩形：fit 'cover'（铺满裁切）或 'contain'；round 圆角；scan CRT 扫描线 0..1；tint 叠色 */
+function drawInto(x, h, r, o = {}) {
+  if (!h || !h.ok) return; const [X, Y, Wd, Hd] = r, ar = h.w / h.h, rr = Wd / Hd;
+  let dw = Wd, dh = Hd; if ((o.fit || 'cover') === 'cover' ? ar > rr : ar < rr) dw = Hd * ar; else dh = Wd / ar;
+  const z = o.zoom || 1, fx = o.focus ? o.focus[0] : .5, fy = o.focus ? o.focus[1] : .5; dw *= z; dh *= z;
+  x.save(); x.globalAlpha *= o.a == null ? 1 : o.a; x.beginPath(); if (o.round) x.roundRect(X, Y, Wd, Hd, o.round); else x.rect(X, Y, Wd, Hd); x.clip();
+  if (o.filter) x.filter = o.filter;
+  x.drawImage(h.im, X + Wd / 2 - dw * fx - (Wd / 2 - Wd * fx) * 0 , Y + Hd / 2 - dh * fy, dw, dh); x.filter = 'none';
+  if (o.tint) { x.globalCompositeOperation = 'multiply'; x.fillStyle = o.tint; x.fillRect(X, Y, Wd, Hd); x.globalCompositeOperation = 'source-over'; }
+  if (o.scan) { x.fillStyle = `rgba(0,0,0,${.28 * o.scan})`; for (let yy = Y; yy < Y + Hd; yy += 4) x.fillRect(X, yy, Wd, 2); }
+  if (o.vignette) { const g = x.createRadialGradient(X + Wd / 2, Y + Hd / 2, Math.min(Wd, Hd) * .3, X + Wd / 2, Y + Hd / 2, Math.max(Wd, Hd) * .7); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${o.vignette})`); x.fillStyle = g; x.fillRect(X, Y, Wd, Hd); }
+  x.restore();
+}
+function videoDraw(fr, c, lt, r, o = {}) { const h = videoFrame(c, lt); under(x => drawInto(x, h, r, o)); }
+function imageDraw(fr, h, r, o = {}) { under(x => drawInto(x, h, r, o)); }
+
+/* ---------- 推进转场 ----------
+ * pushThrough：把一张图 / 一帧视频从 rect 推近到焦点 focus（图内 0..1），k 0→1；焦点同时移到画面中央，缩放在对数空间走。
+ * 常和 whiteFlash 连用：推到底 → 白场 → 下一个画面。 */
+function lerpRect(a, b, k) { return a.map((v, i) => lerp(v, b[i], k)); }
+function pushThrough(fr, h, r, k, o = {}) {
+  if (!h || !h.ok) return; const zoom = Math.exp(lerp(0, Math.log(o.zoom || 9), E.in3(clamp(k)))), f = o.focus || [.5, .5];
+  const [X, Y, Wd, Hd] = r, cx = lerp(X + Wd * f[0], W / 2, E.io3(clamp(k))), cy = lerp(Y + Hd * f[1], H / 2, E.io3(clamp(k)));
+  const nw = Wd * zoom, nh = Hd * zoom, nr = [cx - nw * f[0], cy - nh * f[1], nw, nh];
+  under(x => { x.save(); x.globalAlpha = o.a == null ? 1 : o.a; x.drawImage(h.im, nr[0], nr[1], nr[2], nr[3]); x.restore(); });
+  if (o.blur && k > .5) fr.look.bloom = Math.max(fr.look.bloom, .35 + .8 * (k - .5));
+  return nr;
+}
+/* 白场：t0 最亮，rise 前推、fall 后落 */
+function whiteFlash(fr, t, t0, o = {}) { G.VKit.flash(fr, t, t0, { color: '#FFFFFF', edge: '#FFFFFF', peak: o.peak || 1, rise: o.rise == null ? .25 : o.rise, fall: o.fall == null ? .55 : o.fall }); }
+/* 从一个矩形长到另一个矩形（小窗 → 全屏、CRT 屏 → 全屏） */
+function grow(fr, h, from, to, k, o = {}) { const r = lerpRect(from, to, E.io3(clamp(k))); under(x => drawInto(x, h, r, Object.assign({}, o, { round: o.round == null ? lerp(18, 0, clamp(k)) : o.round }))); return r; }
+
+G.VKLedo = { PAL, BRAND, brandSet, img, frame, under, sub, brand, watermark, endLogo, photo, footage, marker, year, callout, checklist, crt, clock, filmstrip,
+  video, videoFrame, videoDraw, imageDraw, drawInto, pushThrough, whiteFlash, grow, lerpRect };
 })(window);

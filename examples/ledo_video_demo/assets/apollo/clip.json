@@ -1,0 +1,9 @@
+{
+ "fps": 24.0,
+ "frames": 192,
+ "width": 640,
+ "height": 480,
+ "source": "apollo11_first_steps.ogv",
+ "start": 33.0,
+ "dur": "8"
+}

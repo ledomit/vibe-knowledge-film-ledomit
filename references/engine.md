@@ -272,6 +272,12 @@ VK.film({ dur, theme: 'ledo', bloom: .35, draw(fr, t) {
 | `L.crt(fr, o)` | CRT 显示器，返回屏幕矩形 `[x, y, w, h]` 给你往里画 |
 | `L.clock(fr, o)` | 秒表：`{ x, y, r, value 0..1, label }` |
 | `L.filmstrip(fr, t, o)` | 胶片条：`{ y, h, speed, frames: [图片句柄] }` |
+| `L.video(dir, n, fps)` | 真实视频片段：先 `python scripts/extract_frames.py <视频> <工程>/assets/<名> --start 秒 --dur 秒` 拆成逐帧图片，再按时间取帧（逐帧 seek 下每帧都对得上） |
+| `L.videoDraw(fr, clip, lt, [x, y, w, h], o)` | 把视频的第 `lt` 秒画进矩形：`{ fit: 'cover'|'contain', round, scan 扫描线, vignette, tint, filter, zoom, focus, a }`；`L.imageDraw` 同理画图片 |
+| `L.footage(…, clip)` | 真实影像小窗的内容也可以直接传视频片段 |
+| `L.pushThrough(fr, img, rect, k, o)` | 推进转场：从屏上的 `rect` 推近到图内焦点 `o.focus`（0..1），`o.zoom` 倍，缩放走对数；常接 `L.whiteFlash` |
+| `L.whiteFlash(fr, t, t0, o)` | 白场：`t0` 最亮，`o.rise` / `o.fall` |
+| `L.grow(fr, img, from, to, k, o)` | 从一个矩形长到另一个（CRT 屏 → 全屏、小窗 → 全屏），圆角跟着收 |
 | `L.PAL` / `L.BRAND` | 色板 / 署名 |
 
 `L.img` 读的图片路径相对工程目录（`assets/…`）；品牌图片在 `engine/brand/`，由 render.py 挂在 `/engine/` 下。
