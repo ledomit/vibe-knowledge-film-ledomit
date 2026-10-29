@@ -7,7 +7,7 @@
  * 依赖 vk.js、vk-kit.js；不改它们，B / C 两套外观照旧。 */
 (function (G) {
 'use strict';
-const { W, H, clamp, lerp, seg, ss, E, fade, rng, rgba, mix, BG } = G.VK;
+const { W, H, clamp, lerp, seg, ss, E, fade, rng, hash, rgba, mix, BG } = G.VK;
 
 const PAL = { bg: '#121316', ink: '#F2F2F0', sub: '#ECECEA', en: '#9A9A98', gold: '#E9C46A', goldHi: '#F6DE9C', goldLo: '#B8933F',
   teal: '#3E9C96', amber: '#F0A030', line: '#D2D2D0', label: '#9AA0A6', dim: '#5E6266', red: '#D9483B' };
@@ -230,6 +230,176 @@ function whiteFlash(fr, t, t0, o = {}) { G.VKit.flash(fr, t, t0, { color: '#FFFF
 /* 从一个矩形长到另一个矩形（小窗 → 全屏、CRT 屏 → 全屏） */
 function grow(fr, h, from, to, k, o = {}) { const r = lerpRect(from, to, E.io3(clamp(k))); under(x => drawInto(x, h, r, Object.assign({}, o, { round: o.round == null ? lerp(18, 0, clamp(k)) : o.round }))); return r; }
 
+
+/* ======================= 2026-10-29 加的件：照参考片（VibeSCI《HS-AFM》188 s）补齐 ledo 的"3D + 实物 + 证据"语言 ======================= */
+
+/* ---------- 3D：一台透视相机 ----------
+ * const cam = L.cam3({ at: [960, 540], yaw, pitch, dist: 1600, focal: 1500 });  cam.proj([x, y, z]) → [sx, sy, 缩放, 深度]
+ * 世界坐标：x 向右、y 向上、z 朝向观众。yaw 绕竖轴转、pitch 绕横轴转（镜头"转一个角度"就是让 yaw / pitch 随时间走） */
+function cam3(o = {}) {
+  const at = o.at || [W / 2, H / 2], yaw = o.yaw || 0, pitch = o.pitch || 0, dist = o.dist || 1600, focal = o.focal || 1500;
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  return { at, proj(p) {
+    const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy, y2 = p[1] * cp - z1 * sp, z2 = p[1] * sp + z1 * cp, f = focal / Math.max(60, dist - z2);
+    return [at[0] + x1 * f, at[1] - y2 * f, f, z2];
+  } };
+}
+
+/* ---------- 3D：一团"粉彩蛋白"（参考片的蛋白质：一串有体积的小球，淡蓝 / 淡黄，顶光，远处雾化） ----------
+ * L.molecule(seed, n, o) 生成小球表：沿一条随机游走排开；o: { r: 球半径, step: 步长, spread: 横向抖动, cols: 颜色组 }
+ * L.blobs3(fr, cam, balls, o) 按远近排序画（实心，走底层不吃辉光）；o: { a, fog: 远处往底色淡多少, fogColor, light: [lx, ly] } */
+function molecule(seed, n, o = {}) {
+  const R = rng(seed), r = o.r || 26, step = o.step || r * .55, sp = o.spread || r * 1.5, cols = o.cols || ['#A9C4F0', '#F1DE9C'], out = [];
+  let p = [0, 0, 0], d = [1, 0, 0];
+  for (let i = 0; i < n; i++) {
+    d = [d[0] + (R() - .5) * .9, d[1] + (R() - .5) * .9, d[2] + (R() - .5) * .9]; const m = Math.hypot(...d) || 1; d = d.map(v => v / m);
+    p = [p[0] + d[0] * step, p[1] + d[1] * step, p[2] + d[2] * step];
+    out.push({ p: [p[0] + (R() - .5) * sp, p[1] + (R() - .5) * sp, p[2] + (R() - .5) * sp], r: r * (.75 + R() * .5), col: cols[Math.floor(i / Math.max(1, n / cols.length)) % cols.length] });
+  }
+  return out;
+}
+function blobs3(fr, cam, balls, o = {}) {
+  const a = o.a == null ? 1 : o.a; if (a <= 0) return;
+  const off = o.at || [0, 0, 0], fog = o.fog == null ? .45 : o.fog, fogC = o.fogColor || '#1E3A3A', lx = (o.light || [-.45, -.55])[0], ly = (o.light || [-.45, -.55])[1];
+  const pr = balls.map(b => { const q = cam.proj([b.p[0] + off[0], b.p[1] + off[1], b.p[2] + off[2]]); return { x: q[0], y: q[1], r: b.r * q[2], z: q[3], col: b.col }; }).sort((u, v) => u.z - v.z);
+  const zs = pr.map(p => p.z), z0 = Math.min(...zs), z1 = Math.max(...zs) + 1e-6;
+  under(x => { x.save(); x.globalAlpha = a;
+    pr.forEach(p => { if (p.r < .5) return; const fg = fog * (1 - (p.z - z0) / (z1 - z0)), c = mix(p.col, fogC, fg);
+      const g = x.createRadialGradient(p.x + lx * p.r * .6, p.y + ly * p.r * .6, p.r * .05, p.x, p.y, p.r);
+      g.addColorStop(0, mix(c, '#FFFFFF', .55)); g.addColorStop(.55, c); g.addColorStop(1, mix(c, '#000000', .45));
+      x.fillStyle = g; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 6.2832); x.fill(); });
+    x.restore(); });
+}
+
+/* ---------- 3D：把一张图贴在一块斜放的平面上（课本躺在桌上、论文页斜着、屏幕里的论文） ----------
+ * L.plane3(fr, cam, img, { c: 中心 [x,y,z], w, h, rx: 绕横轴倾斜（躺下 ≈ -1.2）, ry: 绕竖轴, a, shadow, cols, rows })
+ * 切成 cols×rows 的三角网格，每块精确仿射，近似透视（默认 10×10）；img 可以是图片句柄或 L.paper() 生成的画布 */
+function plane3(fr, cam, h, o = {}) {
+  const im = h && (h.im || h); if (!im || (h.ok === false)) return;
+  const iw = h.w || im.width, ih = h.h || im.height, c = o.c || [0, 0, 0], w = o.w || 600, hh = o.h || w * ih / iw, rx = o.rx || 0, ry = o.ry || 0, N = o.cols || 10, a = o.a == null ? 1 : o.a;
+  const P = (u, v) => { let x = (u - .5) * w, y = (.5 - v) * hh, z = 0;
+    const y1 = y * Math.cos(rx) - z * Math.sin(rx), z1 = y * Math.sin(rx) + z * Math.cos(rx); y = y1; z = z1;
+    const x2 = x * Math.cos(ry) + z * Math.sin(ry), z2 = -x * Math.sin(ry) + z * Math.cos(ry);
+    return cam.proj([c[0] + x2, c[1] + y, c[2] + z2]); };
+  under(x => { x.save(); x.globalAlpha = a;
+    if (o.shadow !== false) { const q = [P(0, 0), P(1, 0), P(1, 1), P(0, 1)]; x.save(); x.shadowColor = 'rgba(0,0,0,.6)'; x.shadowBlur = 46; x.shadowOffsetY = 22; x.fillStyle = '#1A1410';
+      x.beginPath(); q.forEach((p, i) => i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])); x.closePath(); x.fill(); x.restore(); }
+    const M = o.rows || 10, G2 = [];                                  // 网格 N×M，每格两块三角形，各自精确仿射（透视不会裂缝）
+    for (let j = 0; j <= M; j++) { G2.push([]); for (let i = 0; i <= N; i++) G2[j].push(P(i / N, j / M)); }
+    const tri = (s0, s1, s2, d0, d1, d2) => {
+      const den = (s1[0] - s0[0]) * (s2[1] - s0[1]) - (s2[0] - s0[0]) * (s1[1] - s0[1]); if (!den) return;
+      const A = ((d1[0] - d0[0]) * (s2[1] - s0[1]) - (d2[0] - d0[0]) * (s1[1] - s0[1])) / den, B = ((d1[1] - d0[1]) * (s2[1] - s0[1]) - (d2[1] - d0[1]) * (s1[1] - s0[1])) / den;
+      const C = ((d2[0] - d0[0]) * (s1[0] - s0[0]) - (d1[0] - d0[0]) * (s2[0] - s0[0])) / den, D = ((d2[1] - d0[1]) * (s1[0] - s0[0]) - (d1[1] - d0[1]) * (s2[0] - s0[0])) / den;
+      const cx = (d0[0] + d1[0] + d2[0]) / 3, cy = (d0[1] + d1[1] + d2[1]) / 3, ex = q => [q[0] + Math.sign(q[0] - cx) * 1.2, q[1] + Math.sign(q[1] - cy) * 1.2];
+      const e0 = ex(d0), e1 = ex(d1), e2 = ex(d2), bx = Math.max(0, Math.min(s0[0], s1[0], s2[0]) - 2), by = Math.max(0, Math.min(s0[1], s1[1], s2[1]) - 2), bw = Math.min(iw, Math.max(s0[0], s1[0], s2[0]) + 2) - bx, bh = Math.min(ih, Math.max(s0[1], s1[1], s2[1]) + 2) - by;
+      x.save(); x.beginPath(); x.moveTo(e0[0], e0[1]); x.lineTo(e1[0], e1[1]); x.lineTo(e2[0], e2[1]); x.closePath(); x.clip();
+      x.setTransform(A, B, C, D, d0[0] - A * s0[0] - C * s0[1], d0[1] - B * s0[0] - D * s0[1]); x.drawImage(im, bx, by, bw, bh, bx, by, bw, bh); x.restore(); };
+    for (let j = 0; j < M; j++) for (let i = 0; i < N; i++) {
+      const s00 = [i / N * iw, j / M * ih], s10 = [(i + 1) / N * iw, j / M * ih], s01 = [i / N * iw, (j + 1) / M * ih], s11 = [(i + 1) / N * iw, (j + 1) / M * ih];
+      tri(s00, s10, s01, G2[j][i], G2[j][i + 1], G2[j + 1][i]); tri(s11, s01, s10, G2[j + 1][i + 1], G2[j + 1][i], G2[j][i + 1]); }
+    x.restore(); });
+}
+
+/* ---------- 论文页 / 课本页：生成一张"纸"（离屏画布，带缓存），可以平放（L.imageDraw / L.photo 的 clean 样式）或斜放（L.plane3） ----------
+ * L.paper({ key, journal: 'Nature 468, 72 (2010)', title, authors, body: 行数, fig: 图片句柄, figCap, w: 900, tone: 'paper'|'book', mark: [行号…] })
+ * 返回 { im, w, h, ok, lines: { title: [x,y,w,h], authors: [...], 'body3': [...] } }——行的位置给 L.highlight 用 */
+const PAPERS = {};
+function paper(o = {}) {
+  const key = o.key || JSON.stringify([o.journal, o.title, o.authors, o.body, o.w, o.tone]); if (PAPERS[key] && (!o.fig || PAPERS[key].figOk)) return PAPERS[key];
+  const w = o.w || 900, h = Math.round(w * 1.3), c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'), R = rng(w + (o.body || 0));
+  const book = o.tone === 'book', ink = book ? '#3A3226' : '#1E1E1E', lines = {};
+  x.fillStyle = book ? '#ECE3CC' : '#F3F1EA'; x.fillRect(0, 0, w, h);
+  const vg = x.createRadialGradient(w / 2, h / 2, w * .3, w / 2, h / 2, w * .85); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(60,45,20,.18)'); x.fillStyle = vg; x.fillRect(0, 0, w, h);
+  const m = w * .08; let y = m;
+  if (o.journal) { x.fillStyle = '#6A6A6A'; x.font = `500 ${w * .022}px "VK Mono"`; x.fillText(o.journal, m, y); y += w * .06; }
+  if (o.title) { x.fillStyle = ink; const fs = w * .05; x.font = `${book ? '700' : 'italic 600'} ${fs}px ${book ? '"VK Serif"' : '"VK Latin"'}`;
+    const latin = / /.test(o.title), words = latin ? o.title.split(' ').map((v, i) => (i ? ' ' : '') + v) : Array.from(o.title), maxW = w - 2 * m; let ln = '', ty = y + fs; const tls = [];
+    for (const ch of words) { if (x.measureText(ln + ch).width > maxW && ln) { x.fillText(ln, m, ty); tls.push([m, ty - fs * .9, x.measureText(ln).width, fs * 1.1]); ln = ch.trimStart(); ty += fs * 1.25; } else ln += ch; }
+    if (ln) { x.fillText(ln, m, ty); tls.push([m, ty - fs * .9, x.measureText(ln).width, fs * 1.1]); }
+    lines.title = [m, tls[0][1], Math.max(...tls.map(l => l[2])), ty - tls[0][1] + fs * .25]; lines.titleLines = tls; y = ty + fs * .8; }
+  if (o.authors) { const fs = w * .024; x.fillStyle = '#2E4E8A'; x.font = `500 ${fs}px "VK Sans"`; x.fillText(o.authors, m, y); lines.authors = [m, y - fs * .9, x.measureText(o.authors).width, fs * 1.2]; y += fs * 2.2; }
+  if (o.fig && o.fig.ok) { const fw = w - 2 * m, fh = fw * o.fig.h / o.fig.w * .8; x.drawImage(o.fig.im, m, y, fw, fh); lines.fig = [m, y, fw, fh]; y += fh + w * .02;
+    if (o.figCap) { x.fillStyle = '#444'; x.font = `italic 500 ${w * .022}px "VK Latin"`; x.fillText(o.figCap, m, y + w * .02); y += w * .05; } }
+  const nb = o.body == null ? 14 : o.body, lh = w * .03;
+  for (let i = 0; i < nb && y < h - m; i++, y += lh) { const lw = (w - 2 * m) * (i % 7 === 6 ? .55 + R() * .2 : .92 + R() * .08);
+    x.fillStyle = 'rgba(40,40,40,.55)'; for (let s = 0; s < lw; s += 8 + R() * 30) { const ww = 6 + R() * 26; x.fillRect(m + s, y, Math.min(ww, lw - s), lh * .32); } lines['body' + i] = [m, y - lh * .2, lw, lh * .7]; }
+  const res = { im: c, w, h, ok: true, lines, figOk: !o.fig || o.fig.ok }; PAPERS[key] = res; return res;
+}
+
+/* ---------- 荧光笔：一道黄色的笔迹从左到右涂过一行（论文标题、作者、课本里的一句话） ----------
+ * L.highlight(fr, [x, y, w, h], k, { color, a, under: true 画在底层（压在纸上，字在上面）}) */
+function highlight(fr, r, k, o = {}) {
+  if (k <= 0) return; const [X, Y, Wd, Hd] = r, col = o.color || '#F6D35B', a = (o.a == null ? .55 : o.a);
+  const draw = x => { x.save(); x.globalAlpha = a; x.globalCompositeOperation = o.mode || 'multiply'; x.fillStyle = col; x.beginPath();
+    const ww = Wd * clamp(k); x.moveTo(X - 6, Y + Hd * .1); x.lineTo(X + ww, Y); x.lineTo(X + ww + 4, Y + Hd); x.lineTo(X - 4, Y + Hd * .95); x.closePath(); x.fill(); x.restore(); };
+  if (o.under === false) draw(fr.x); else under(draw);
+}
+
+/* ---------- 红色橡皮章：参考片里的"STATIC"（只拍到静止的照片）、限制和否定都用它 ----------
+ * L.stamp(fr, t, t0, '静止 · STATIC', x, y, { size, rot, out: 消失时刻, a })——从 2.4 倍砸下，带缺墨斑点 */
+function stamp(fr, t, t0, txt, x, y, o = {}) {
+  if (t < t0 - .01) return;
+  const k = E.out3(seg(t, t0, t0 + .1)), a = k * (o.out == null ? 1 : 1 - ss(t, o.out - .2, o.out)) * (o.a == null ? 1 : o.a); if (a <= 0) return;
+  const size = o.size || 64, font = o.font || 'sansh', col = o.color || PAL.red, tw = fr.measure(txt, { font, size, track: size * .08 }), w = tw + size * .7, h = size * 1.32;
+  fr.g({ at: [x, y], rot: o.rot == null ? -.15 : o.rot, s: lerp(2.4, 1, k) }, () => {
+    fr.rect(-w / 2, -h / 2, w, h, { r: 10, color: col, w: size * .07, a: a * .95 });
+    fr.rect(-w / 2 + size * .11, -h / 2 + size * .11, w - size * .22, h - size * .22, { r: 6, color: col, w: size * .025, a: a * .9 });
+    fr.text(txt, 0, size * .04, { font, size, track: size * .08, color: col, a });
+    for (let i = 0; i < 60; i++) fr.circle((hash(i * 3.1 + size) - .5) * w, (hash(i * 5.7 + size) - .5) * h, 1.2 + hash(i * 9.3) * size * .035, { fill: '#121316', a: a * .7 });
+  });
+  fr.sfx(t0, 'stamp', { gain: .8 });
+}
+
+/* ---------- 对照窗：左右两个画面同框（真实影像 vs 模型、以前 vs 现在、荧光 vs AFM），各带一个等宽小标，可选同步计时 ----------
+ * L.compare(fr, t, { t0, t1, y, h, gap, labels: ['FLUORESCENCE · 荧光', 'HS-AFM · 高速原子力'], time: 秒数或 null, src: ['出处', '出处'] }, left, right)
+ * left / right：图片句柄、L.video 片段（按 t - t0 取帧）或画法函数 (ctx, x, y, w, h, lt) */
+function compare(fr, t, o, left, right) {
+  const lt = t - o.t0; if (lt < -.05 || (o.t1 != null && t > o.t1 + .3)) return;
+  const k = E.out3(seg(lt, 0, .4)) * (o.t1 == null ? 1 : 1 - ss(t, o.t1, o.t1 + .3)), gap = o.gap || 36, h = o.h || 470, w = o.w || (W - 2 * 130 - gap) / 2, y = o.y == null ? 150 : o.y, x0 = (W - 2 * w - gap) / 2;
+  [[left, 0], [right, 1]].forEach(([c, i]) => { const X = x0 + i * (w + gap) + (1 - k) * (i ? 60 : -60), r = [X, y, w, h];
+    under(xx => { xx.save(); xx.globalAlpha = k; xx.fillStyle = '#050506'; xx.fillRect(...r);
+      if (c && c.frames) drawInto(xx, videoFrame(c, lt), r, { fit: 'cover' }); else if (c && c.ok) drawInto(xx, c, r, { fit: 'cover' }); else if (typeof c === 'function') { xx.beginPath(); xx.rect(...r); xx.clip(); c(xx, ...r, lt); }
+      xx.restore(); });
+    fr.rect(...r, { color: PAL.line, w: 1.2, a: .7 * k });
+    if (o.labels) fr.text(o.labels[i], X, y - 18, { font: 'mono', size: 16, track: 3, color: PAL.line, align: 'l', a: .9 * k });
+    if (o.src && o.src[i]) fr.text(o.src[i], X, y + h + 20, { font: 'mono', size: 12, track: 1, color: PAL.label, align: 'l', a: .75 * k });
+    if (o.time != null) fr.text(`${o.time.toFixed(2)} s`, X + w - 14, y + h - 22, { font: 'mono', size: 22, color: '#FFFFFF', align: 'r', a: k, shadow: .7 });
+  });
+}
+
+/* ---------- 人物卡：证件照 + 底下一条白色名牌（名字 + 身份），可成排排开（参考片里的科学家墙、颁奖照） ----------
+ * L.portrait(fr, img, { x, y, w, name, role, rot, a, s }) */
+function portrait(fr, h, o = {}) {
+  if (!h || !h.ok) return; const a = o.a == null ? 1 : o.a; if (a <= .003) return;
+  const s = o.s || 1, w = (o.w || 220) * s, ih = w * 1.25, tag = o.name ? w * .26 : 0, X = (o.x || W / 2), Y = (o.y || H / 2);
+  under(x => { x.save(); x.globalAlpha = a; x.translate(X, Y); x.rotate(o.rot || 0);
+    x.shadowColor = 'rgba(0,0,0,.55)'; x.shadowBlur = 24 * s; x.shadowOffsetY = 10 * s; x.fillStyle = '#E8E6E0'; x.fillRect(-w / 2 - 6 * s, -ih / 2 - 6 * s, w + 12 * s, ih + tag + 12 * s); x.shadowColor = 'transparent';
+    const ar = h.w / h.h, rr = w / ih; let sw = h.w, sh = h.h, sx = 0, sy = 0; if (ar > rr) { sw = h.h * rr; sx = (h.w - sw) / 2; } else { sh = h.w / rr; sy = (h.h - sh) * .25; }
+    x.drawImage(h.im, sx, sy, sw, sh, -w / 2, -ih / 2, w, ih);
+    if (tag) { x.fillStyle = '#FFFFFF'; x.fillRect(-w / 2, ih / 2, w, tag); x.fillStyle = '#1C1C1C'; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.font = `700 ${Math.round(tag * .36)}px "VK Sans"`; x.fillText(o.name, 0, ih / 2 + tag * (o.role ? .36 : .5));
+      if (o.role) { x.fillStyle = '#6A6A6A'; x.font = `500 ${Math.round(tag * .24)}px "VK Sans"`; x.fillText(o.role, 0, ih / 2 + tag * .74); } }
+    x.restore(); });
+}
+
+/* ---------- 出处行：画面左上角一行等宽小字（"Nature 468, 72 (2010) · Fig. 1 · Supplementary Movie"），每一张真实图都配一行 ---------- */
+function citation(fr, txt, o = {}) { fr.text(txt, o.x == null ? 110 : o.x, o.y == null ? 96 : o.y, { font: 'mono', size: o.size || 15, track: 2, color: PAL.label, align: o.align || 'l', a: (o.a == null ? 1 : o.a) * .85 }); }
+
+/* ---------- 比例尺：一根短线 + 两头竖线 + 等宽标注（"10 nm"） ---------- */
+function scaleBar(fr, x, y, len, label, o = {}) { const a = o.a == null ? 1 : o.a, c = o.color || PAL.line;
+  fr.line(x, y, x + len, y, { color: c, w: 2, a }); fr.line(x, y - 7, x, y + 7, { color: c, w: 2, a }); fr.line(x + len, y - 7, x + len, y + 7, { color: c, w: 2, a });
+  fr.text(label, x + len / 2, y + 22, { font: 'mono', size: 15, track: 2, color: c, a }); }
+
+/* 在论文页上涂荧光笔（贴到 3D 平面上之前用）：L.paperMark(L.paper({...}), [[rect, k], …]) → 一张临时画布（每帧重画，共用一块） */
+let MARKC = null;
+function paperMark(pp, marks) {
+  if (!MARKC) MARKC = document.createElement('canvas'); MARKC.width = pp.w; MARKC.height = pp.h; const x = MARKC.getContext('2d');
+  x.drawImage(pp.im, 0, 0); (marks || []).forEach(([r, k]) => { if (k <= 0) return; const [X, Y, Wd, Hd] = r; x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = .6; x.fillStyle = '#F6D35B';
+    x.beginPath(); const ww = Wd * clamp(k); x.moveTo(X - 6, Y + Hd * .1); x.lineTo(X + ww, Y); x.lineTo(X + ww + 4, Y + Hd); x.lineTo(X - 4, Y + Hd * .95); x.closePath(); x.fill(); x.restore(); });
+  return { im: MARKC, w: pp.w, h: pp.h, ok: true };
+}
+
 G.VKLedo = { PAL, BRAND, brandSet, img, frame, under, sub, brand, watermark, endLogo, photo, footage, marker, year, callout, checklist, crt, clock, filmstrip,
-  video, videoFrame, videoDraw, imageDraw, drawInto, pushThrough, whiteFlash, grow, lerpRect };
+  video, videoFrame, videoDraw, imageDraw, drawInto, pushThrough, whiteFlash, grow, lerpRect,
+  cam3, molecule, blobs3, plane3, paper, paperMark, highlight, stamp, compare, portrait, citation, scaleBar };
 })(window);

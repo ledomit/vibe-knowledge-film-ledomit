@@ -278,6 +278,18 @@ VK.film({ dur, theme: 'ledo', bloom: .35, draw(fr, t) {
 | `L.pushThrough(fr, img, rect, k, o)` | 推进转场：从屏上的 `rect` 推近到图内焦点 `o.focus`（0..1），`o.zoom` 倍，缩放走对数；常接 `L.whiteFlash` |
 | `L.whiteFlash(fr, t, t0, o)` | 白场：`t0` 最亮，`o.rise` / `o.fall` |
 | `L.grow(fr, img, from, to, k, o)` | 从一个矩形长到另一个（CRT 屏 → 全屏、小窗 → 全屏），圆角跟着收 |
+| `L.cam3({ at, yaw, pitch, dist, focal })` | 透视相机，`.proj([x, y, z])` → `[sx, sy, 缩放, 深度]`；镜头转角度就让 yaw / pitch 随时间走 |
+| `L.molecule(seed, n, { r, step, spread, cols })` | 生成一团"粉彩蛋白"的小球表（随机游走，确定性） |
+| `L.blobs3(fr, cam, balls, { at, a, fog, fogColor, light })` | 按远近排序画小球团：顶光渐变 + 远处雾化，走底层不吃辉光 |
+| `L.plane3(fr, cam, img, { c, w, h, rx, ry, a, shadow, cols, rows })` | 把图片 / 纸贴在一块斜放的 3D 平面上（三角网格逐块仿射，带软阴影） |
+| `L.paper({ key, journal, title, authors, body, fig, figCap, w, tone })` | 生成论文页 / 课本页（离屏画布，缓存）；返回 `lines.title / authors / bodyN` 的位置 |
+| `L.paperMark(paper, [[rect, k], …])` | 在纸上涂荧光笔（k 0→1 从左往右涂），贴到 `plane3` 之前用 |
+| `L.highlight(fr, rect, k, o)` | 屏幕上直接涂一道荧光笔 |
+| `L.stamp(fr, t, t0, txt, x, y, { size, rot, out })` | 红色橡皮章，从 2.4 倍砸下，带缺墨斑点 |
+| `L.compare(fr, t, { t0, t1, labels, time, src }, left, right)` | 左右对照窗；内容可以是图片、视频片段或画法函数；可选同步计时 |
+| `L.portrait(fr, img, { x, y, w, name, role, rot, a })` | 人物卡：证件照 + 白色名牌 |
+| `L.citation(fr, txt, o)` | 左上一行等宽出处 |
+| `L.scaleBar(fr, x, y, len, label)` | 比例尺 |
 | `L.PAL` / `L.BRAND` | 色板 / 署名 |
 
 `L.img` 读的图片路径相对工程目录（`assets/…`）；品牌图片在 `engine/brand/`，由 render.py 挂在 `/engine/` 下。
