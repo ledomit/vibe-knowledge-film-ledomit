@@ -125,7 +125,7 @@ description: >
 | 一段科学史 / 人物故事 / 需要真实照片、论文、真实影像来证明"这是真的" | **ledo**（飞行少年v） |
 
 一共三套。ledo 的规格在 `references/worlds.md` 的 ledo 一节，件在 `engine/vk-ledo.js`（用法见 `references/engine.md`），来源拆解在 `references/ledo-reference-breakdown.md`。
-ledo 默认带品牌：右上角"@飞行少年v"+ 圆形头像（`engine/brand/`），片尾 logo 动画。ledo 的画面由五种材料组成（实物、真实影像、3D 模型、HUD、字），放进同一个空间；每条片至少用两种"证据动作"（荧光笔划论文、红章否定、左右对照、同机位换年份、计时计数），件和示例见 `references/worlds.md` 的 ledo 一节和 `examples/ledo_kit/`。ledo 可以纯动画和真实图片 / 真实视频混排：图片放进工程的 `assets/`；视频先用 `scripts/extract_frames.py` 拆帧再用 `L.video`；推进转场用 `L.pushThrough` + `L.whiteFlash`、`L.grow`。
+ledo 默认带品牌：右上角"@飞行少年v"+ 圆形头像（`engine/brand/`），片尾 logo 动画。ledo 的画面由五种材料组成（实物、真实影像、3D 模型、HUD、字），放进同一个空间；每条片至少用两种"证据动作"（荧光笔划论文、红章否定、左右对照、同机位换年份、计时计数），件和示例见 `references/worlds.md` 的 ledo 一节和 `examples/ledo_kit/`。讲工具、产品、App、数据的段落可以换成 **UIDesign** 画法（浅色液态玻璃 + 灵动岛，见 `references/UIDesign.md`）。ledo 可以纯动画和真实图片 / 真实视频混排：图片放进工程的 `assets/`；视频先用 `scripts/extract_frames.py` 拆帧再用 `L.video`；推进转场用 `L.pushThrough` + `L.whiteFlash`、`L.grow`。
 **用真实素材时，分镜表必须带素材清单**（每镜用哪张图 / 哪段视频、出处、授权）：优先用户自己的素材，其次公有领域 / CC；下载前告诉用户文件名、来源、大小、授权；片尾文献线索写清出处。
 
 原来只有这两套（B、C）。它们的色、字、版式、常驻元素、片名卡、声音都在 `references/worlds.md`。拿不准选 C；B 最费工。
@@ -231,6 +231,7 @@ python engine/render.py <工程目录> --jobs 4           # 全片，4 路并行
 | `references/engine.md` | 引擎 API、命令、写法、坑 |
 | `engine/` | `vk.js` `vk-kit.js` `vk-ledo.js`（ledo 的件）`render.py` `audio.py` `get_fonts.py`；`engine/brand/` 是飞行少年v 的 logo 和署名 |
 | `references/ledo-reference-breakdown.md` | ledo 的来源：一条 VibeSCI 参考片的分镜、卡点、动画、logo 拆解 |
+| `references/UIDesign.md` | **UIDesign** 画法：液态玻璃 + UI 动效 + 灵动岛黑框——提示词（中英）、设计规格、动效语法、Canvas 做法、和三套外观怎么配 |
 | `scripts/new_film.py` | 建工程：`index.html` + 一份没有画面的 `film.js` 骨架 |
 | `scripts/make_storyboard.py` | 分镜图：现渲关键帧 → 总览 + 每镜大图 + 前后对比 → `storyboardN.html`（第 6 步，出视频前必做） |
 | `examples/` | 看别人怎么做过一次，不是零件库。`fold_C`（夜曲，《折叠》开头 33 秒）和 `pigeon_B`（寓言，《鸽子的迷信》开头 33 秒）：自己题目的样片，各带分镜表；`fold_old_vs_new.jpg`：同一段内容的两版对照；两段对照参考片做的复刻；一张货架图；`look_*.jpg` 是各自的拼图 |
