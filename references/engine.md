@@ -294,6 +294,46 @@ VK.film({ dur, theme: 'ledo', bloom: .35, draw(fr, t) {
 
 `L.img` 读的图片路径相对工程目录（`assets/…`）；品牌图片在 `engine/brand/`，由 render.py 挂在 `/engine/` 下。
 
+## card 的件：`VKCard`（`engine/vk-card.js`）
+
+页面模板已经引入（要在 `vk-ledo.js` 之后）。规格和用法的来龙去脉见 `references/card.md`，最小示例 `examples/card_demo/`。
+
+```js
+const L = VKLedo, C = VKCard, P = C.PAL; L.brandSet();
+const T = C.beat({ B: .53191, db0: 3.656 });            // 或 { bpm: 112.8, db0 }；T.DB(n) T.BT(n, i) T.SN(n) T.E8 T.BAR T.snap(x)
+const V = C.voice(T);                                   // 读 voice_subs.js 里的 VOICE_LINES：V.VL(i) V.wordAt(i, '词') V.at(i)
+const BG = [[0, L.img('assets/a.jpg')], [T.DB(6), L.img('assets/b.jpg')]];
+VK.film({ dur, theme: 'ledo', bloom: .2, grain: 0, draw(fr, t) {
+  L.frame(fr); C.stage(fr, t, BG);
+  …                                                     // 各章：C.span 管进出，C.card / C.deal / C.note … 画东西
+  C.subs(fr, t, window.VOICE_SUBS || []); L.brand(fr, t);
+} });
+```
+
+| | |
+|---|---|
+| `C.span(t, t0, t1, { in, out, gap })` | 一段的透明度：`t0` 起 `in`（0.3）秒淡入；`t1 − out`（0.5）到 `t1 − gap`（0.1）淡出——上一段在下一段开始前就消失 |
+| `C.face(key, w, h)` | 离屏卡面 `{ c, x }`，2 倍分辨率，每帧清空重画 |
+| `C.card(fr, c, { c: C.at(x, y, z), w, h, rx, ry, a, r, glow })` | 3D 卡（`L.plane3` + 圆角阴影 + 金框辉光，第 4 个参数是辉光强度）；返回 `(u, v) → [sx, sy, 缩放]` |
+| `C.frameFace(x, w, h, 'dark'|'paper')` | 金框卡面 |
+| `C.txt(x, s, X, Y, { size, wt, fam, align, track, grad, glow, color, maxW, a })` | 卡面上的字；`grad` 金渐变；`maxW` 超宽自动缩 |
+| `C.pill(x, cx, cy, w, h, s, { hot, a, size })` | 发光药丸，`hot` 0..1 点亮 |
+| `C.divider(x, cx, y, half)` / `C.goldG(x, …)` / `C.rr(x, …)` | 分隔线 / 金渐变 / 圆角矩形路径 |
+| `C.stampFace(x, cx, cy, k, 字, size, { rot, color })` | 卡面上的红章（屏幕上直接盖用 `L.stamp`） |
+| `C.webCard(x, { name, line, img, crop, fee, feeKind }, w, h)` | 截图卡，`img` 是 `L.img` 句柄，`crop` = `[x, y, w, h]`（比例）；`feeKind` 'free' 绿 / 'part' 'paid' 橙 |
+| `C.repoCard(x, { owner, repo, desc, star, tag }, w, h)` | 开源仓库卡（扁） |
+| `C.deal(fr, t, { t0, t1, n, w, h, step, gap, y, a, draw(x, i, w, h), sfx })` | 发牌：一张隔 `step` 秒；到 `t1` 前整组左撤 + 淡出；自带 tick |
+| `C.note(x, { x, y, s, a, rot, tape, title, en, art(x) })` | 褶皱便签（340×410，中心对齐）；在 `L.under` 里画 |
+| `C.scrap(x, w, h, { rot, seed, tape, fill }, fn)` / `C.torn(x, X, Y, w, h, seed)` | 撕纸剪贴 / 撕纸路径 |
+| `C.island(fr, t, { t0, pa, pb, x, y, a, label, icon, value(p), tilt })` | 灵动岛滑块：`t0` 起弹开，`pa`–`pb` 拖动并摆正 |
+| `C.stage(fr, t, [[t0, img|null], …], dim)` | 底：模糊压暗照片按段交叉淡；`null` 是一团暖暗光 |
+| `C.pattern(fr, t, icon(x), { a, space, color })` | 很淡的平铺小图标 |
+| `C.chapterHead(fr, t, '01', 标题, t0, t1)` / `C.tag(fr, 字, x, y, a)` | 章节标 / 组名药丸 |
+| `C.track(keys, t, dur)` | 关键帧轨迹 `[[时刻, x, y, s, a?, arc?, dur?]]` → `{ x, y, s, a }` |
+| `C.subs(fr, t, list, { y, size, goldSize })` | 居中字幕：`{ a, b, zh, gold?, full?, from? }`，`{词}` 金色 |
+
+**卡面里改透明度要乘：** `const pa = x.globalAlpha; x.globalAlpha = pa * .5; … x.globalAlpha = pa;`。直接写 `.5` / `1` 会盖掉外面的淡出，旧卡就会压在新卡上。
+
 ## 容易踩的坑
 
 - **字幕区被占。** 纵向 80%–95% 只属于字幕。装置的最低点不要低于 y=840。
