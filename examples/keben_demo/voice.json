@@ -1,0 +1,78 @@
+{
+ "voice": "Achernar",
+ "model": "gemini-3.8-flash-tts",
+ "style": "Vintage 1990s Hong Kong movie Mandarin dubbing, a young heroine around 20: clear, bright, sweet voice with good projection, light chest resonance and natural airiness (not whispery), soft Taiwan-style Mandarin cadence. Expressive and melodic like film dialogue, romantic longing with a subtle playful charm and a touch of sadness; natural, not slow; delicate yet firm sentence endings. Close-mic. Same tone throughout.",
+ "act": " Delivery: a real human narrator, moving but restrained, like quietly telling a memory. Keep the pitch level and steady across the whole passage: no sudden rise or extra emphasis anywhere, especially keep 人生中的问题也是解不完的 calm and low like the rest. Natural light breaths, moderate pauses. A hint of weariness on 一件完了，一件又来, then calm, tender acceptance.",
+ "text": "每个人一辈子，都有许多不顺心的事，一件完了，一件又来。所以，丁香结年年都有。结，是解不完的；人生中的问题也是解不完的，不然，岂不太平淡无味了吗？",
+ "takes": 3,
+ "prefix": "fiv",
+ "beat": {
+  "B": 0.53874,
+  "db0": 0.3638
+ },
+ "dur_beats": 36,
+ "chunks": [
+  "每个人一辈子",
+  "都有许多不顺心的事",
+  "一件完了",
+  "一件又来",
+  "所以",
+  "丁香结年年都有",
+  "结",
+  "是解不完的",
+  "人生中的问题",
+  "也是解不完的",
+  "不然",
+  "岂不太平淡无味了吗"
+ ],
+ "cut": 6,
+ "anchor": {
+  "0": 0,
+  "4": 12,
+  "5": 14,
+  "6": 18
+ },
+ "gap": [
+  0.14,
+  0.55
+ ],
+ "pre": 0.2,
+ "post": 0.1,
+ "grid": 16,
+ "min_gap": 0.2,
+ "level_db": 3,
+ "marks": {
+  "pan": 2,
+  "burst": 5
+ },
+ "beat_marks": {
+  "wind": 16
+ },
+ "hl": [
+  [
+   0,
+   2
+  ],
+  [
+   2,
+   8
+  ],
+  [
+   8,
+   14
+  ],
+  [
+   14,
+   21
+  ],
+  [
+   21,
+   24
+  ],
+  [
+   24,
+   34
+  ]
+ ],
+ "pick": "fiv1_Achernar_e536da9b.wav"
+}

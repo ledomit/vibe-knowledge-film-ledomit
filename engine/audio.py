@@ -8,7 +8,7 @@
 声音的写法学自参考片（C 家族）：
   低频长音垫底 · 每章开头一记带泛音的钟/垫和弦（约 8 秒衰减）· 屏幕上每打一个字一声"嗒" ·
   提问处一个上滑音 · 说到噪声就真的铺噪声 · 定理落地的那一下之后留 2–3 秒彻底静音（hush）。
-事件名：tick / soft / chord / bloom / rise / thud / tock / stamp / shimmer / hush（参数 dur，秒）
+事件名：tick / soft / chord / bloom / rise / thud / tock / stamp / shimmer / hush（参数 dur，秒）；keben 用的 flip（翻页，dur/cover）· marker（荧光笔，dur）· wind（微风，dur）
 META（film.js 的 meta）：{ root: 半音偏移, noise: [[起,止,强度0..1],...], silence: [[起,止],...], drone: 0..1 }
 """
 import json, subprocess, sys
@@ -85,7 +85,25 @@ def ev_shimmer(rng, p):
     n = int(2.4 * SR); t = np.arange(n) / SR; out = np.zeros(n)
     for k in range(7): out += np.sin(2 * np.pi * hz(24 + PENTA[k + 2]) * t + rng.uniform(0, 6)) * np.exp(-((t - .25 - k * .06) / .5) ** 2)
     return pan(out * .035 * p.get("gain", 1), 0)
-EV = dict(tick=ev_tick, soft=ev_soft, chord=ev_chord, bloom=ev_bloom, rise=ev_rise, thud=ev_thud, tock=ev_tock, stamp=ev_stamp, shimmer=ev_shimmer)
+def ev_flip(rng, p):                                  # keben：翻一页纸——起页沙沙 + 落页一口短"啪"（dur = 翻页时长，落页在 dur 处；cover=1 是封面，更闷）
+    dur, cover = p.get("dur", .7), p.get("cover", 0); n = int((dur + .35) * SR); t = np.arange(n) / SR
+    rustle = lowpass(highpass(rng.standard_normal(n), 500 if cover else 900), 6500)
+    flutter = np.clip(1 + .5 * lowpass(rng.standard_normal(n), 30) / .1, .3, 2)
+    x = rustle * np.clip(t / .06, 0, 1) * np.exp(-((t - dur * .45) / (dur * .38)) ** 2) * flutter * .18
+    land = int(dur * SR); k = np.arange(n - land) / SR
+    x[land:] += lowpass(rng.standard_normal(n - land), 1500 if cover else 2500) * np.exp(-k / .035) * .45
+    return pan(x * p.get("gain", 1), 0 if cover else -.15)
+def ev_marker(rng, p):                                # keben：荧光笔划过纸（dur = 划这一截的时长）
+    dur = p.get("dur", .5); n = int((dur + .05) * SR); t = np.arange(n) / SR
+    x = lowpass(highpass(rng.standard_normal(n), 2200), 7000)
+    e = np.clip(t / .03, 0, 1) * np.clip((dur - t) / .06, 0, 1) * (.7 + .3 * np.sin(2 * np.pi * 9 * t + rng.uniform(0, 6)))
+    return pan(x * e * .08 * p.get("gain", 1), .1)
+def ev_wind(rng, p):                                  # keben：一阵微风，起伏着来又走
+    dur = p.get("dur", 2); n = int(dur * SR); t = np.arange(n) / SR
+    x = lowpass(highpass(rng.standard_normal((n, 2)), 150), 1400)
+    return x * (np.sin(np.pi * np.clip(t / dur, 0, 1)) ** 1.5 * (.8 + .2 * np.sin(2 * np.pi * 1.3 * t)) * .22 * p.get("gain", 1))[:, None]
+EV = dict(tick=ev_tick, soft=ev_soft, chord=ev_chord, bloom=ev_bloom, rise=ev_rise, thud=ev_thud, tock=ev_tock, stamp=ev_stamp, shimmer=ev_shimmer,
+          flip=ev_flip, marker=ev_marker, wind=ev_wind)
 
 def reverb(x, rng, t60=3.6, wet=.42):
     n = int(t60 * SR); t = np.arange(n) / SR

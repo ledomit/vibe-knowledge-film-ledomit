@@ -25,6 +25,7 @@
 | `kit_gallery/` | — | 不是片子，把 `vk-kit.js` 里的件各演一遍 | 每个件的最小调用 |
 | `fold_C/` | C 夜曲 | 不是复刻，自己的题目 | 见上 |
 | `pigeon_B/` | B 寓言 | 不是复刻，自己的题目 | 见上 |
+| `keben_demo/` | keben | 不是复刻：《翻书·丁香结》v11 的完整工程（19.76 s），不带课本页面 | 真 PDF 翻书（逐行积分卷页、投影、书沟）；插图破纸长成 3D 丁香（六种长法 `tree.js` 选）；风吹落花 + 推近；荧光笔跟旁白每截划；`voice.json` 配音配置。先跑 `scripts/keben_pages.py` 和 `tools/make_lilac.py` |
 | `card_demo/` | card | 不是片子，把 `vk-card.js` 的件各演一遍（14 s，编的题目） | 灵动岛滑块 + 红章钩子；3D 金框标题卡和问题药丸；章节标 + 发牌；便签和撕纸；居中字幕 |
 
 `look_*.jpg` 是各自的拼图。`fold_old_vs_new.jpg` 是《折叠》两版对照。

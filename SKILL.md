@@ -4,11 +4,13 @@ description: >
   抖音「Vibe知识大赏」式的无旁白知识短片：2–5 分钟、16:9、没有人声，观众读底部一行字幕，同时看屏上把这句话演出来。
   核心是讲解设计：给每个概念找一个外行认得的形象，画得像它本身（不用点、线、圈代替），句子里说到什么屏上就是什么、动词真的发生；
   提问、命名、结论不硬配图。全片由代码逐帧画出（Canvas + seek(t) + Playwright + ffmpeg）。
-  内含四条参考片的逐句拆解、六种画法、找形象的方法、分镜表格式、四套外观（C 夜曲、B 寓言、ledo、card）、渲染引擎和合成配乐。
+  内含四条参考片的逐句拆解、六种画法、找形象的方法、分镜表格式、五套外观（C 夜曲、B 寓言、ledo、card、keben）、渲染引擎和合成配乐。
   ledo 是飞行少年v（ledomit）加的外观：真实图片 / 真实影像 + 矢量动画混排、左下竖线字幕、金色大年份、右上角"@飞行少年v"品牌角标和片尾 logo，适合科学史、人物故事、需要"这是真的"的题目。
-  card 是飞行少年v 加的口播外观（唯一有人声的）：金框深色 3D 卡、网页截图卡一拍一张、便签和红章、居中字幕，画面跟着旁白卡拍，适合经验分享、攻略、工具推荐。
+  card 是飞行少年v 加的口播外观（有人声）：金框深色 3D 卡、网页截图卡一拍一张、便签和红章、居中字幕，画面跟着旁白卡拍，适合经验分享、攻略、工具推荐。
+  keben（课本）是飞行少年v 加的翻书短片外观：真课本 PDF 逐页翻开，插图破纸长成 3D 实物，微风落花推近正文，荧光笔跟着港台老电影配音女声划出那一句，≤20 秒、卡鼓点、无字幕，适合课本名篇名句、共情短片。
+  用户说"翻课本""书里的画长出来""课本 PDF 做翻书动画""keben 风格"时也用这个 skill。
   用户说"做一条 vibe 知识大赏的视频""像《信息论·惊奇之学》《运气的形状》《超常刺激》《自指》那样的片子""代码直出的知识短片""没有旁白的字幕科普片""把这个概念直观地讲清楚"，
-  或者给了一个题目、一份文案要做成这种片子时使用。只做 16:9 横屏。有人声口播的讲解片只用 card 外观。
+  或者给了一个题目、一份文案要做成这种片子时使用。只做 16:9 横屏。有人声口播的讲解片只用 card 外观；课本翻书短片用 keben。
 ---
 
 # Vibe 知识短片
@@ -125,10 +127,12 @@ description: >
 | 一个抽象概念或一个看不见的机制，拆成几个当场可演的小实验 | C 夜曲 |
 | 一段科学史 / 人物故事 / 需要真实照片、论文、真实影像来证明"这是真的" | **ledo**（飞行少年v） |
 | 有人声口播的经验分享、攻略、清单、工具推荐、流程讲解 | **card**（飞行少年v） |
+| 课本里的一课 / 一句：真课本翻开、插图长成真的、荧光笔划出那句，≤20 秒、旁白无字幕 | **keben**（飞行少年v） |
 
-一共四套。ledo 的规格在 `references/worlds.md` 的 ledo 一节，件在 `engine/vk-ledo.js`（用法见 `references/engine.md`），来源拆解在 `references/ledo-reference-breakdown.md`。
+一共五套。ledo 的规格在 `references/worlds.md` 的 ledo 一节，件在 `engine/vk-ledo.js`（用法见 `references/engine.md`），来源拆解在 `references/ledo-reference-breakdown.md`。
 ledo 默认带品牌：右上角"@飞行少年v"+ 圆形头像（`engine/brand/`），片尾 logo 动画。ledo 的画面由五种材料组成（实物、真实影像、3D 模型、HUD、字），放进同一个空间；每条片至少用两种"证据动作"（荧光笔划论文、红章否定、左右对照、同机位换年份、计时计数），件和示例见 `references/worlds.md` 的 ledo 一节和 `examples/ledo_kit/`。讲工具、产品、App、数据的段落可以换成 **UIDesign** 画法（浅色液态玻璃 + 灵动岛，见 `references/UIDesign.md`）。ledo 可以纯动画和真实图片 / 真实视频混排：图片放进工程的 `assets/`；视频先用 `scripts/extract_frames.py` 拆帧再用 `L.video`；推进转场用 `L.pushThrough` + `L.whiteFlash`、`L.grow`。
 card 是 ledo 的底加口播：规格、提示词（中英）、动效语法、卡点方法和踩过的坑都在 `references/card.md`，件在 `engine/vk-card.js`（`VKCard`，用法见 `references/engine.md`），示例 `examples/card_demo/`。card 先配音再定画面时刻：`scripts/card_voice.py` 把 `narration.json` 排进下拍表，产出 `voice_subs.js`，画面时刻都写成"第 i 句开口 / 说到某个词"吸到最近的一拍。TTS 额度很少，只有用户说要配音时才调（平时用 `--estimate` 占位），每分钟最多 8～9 次。前面"没有人声"的规矩对 card 不适用。
+keben 是另一种有人声的短片（15–20 秒，旁白念课文原句、不上字幕）：规格、提示词（中英）、结构、画面六条、配音和混音、坑、返工话术都在 `references/keben.md`，示例 `examples/keben_demo/`（《翻书·丁香结》，不带课本页面）。书必须是用户给的真 PDF：`scripts/keben_pages.py` 渲页面并核对配对；`scripts/keben_voice.py` 整段一次生成旁白、测每截音高挑最平的一版、按停顿排进拍子（`vo_timing.js`，画面节点都读它）；`scripts/keben_mix.py` 出事件音、混音和三样交付。TTS 同样只有用户说要配音时才调。
 **用真实素材时，分镜表必须带素材清单**（每镜用哪张图 / 哪段视频、出处、授权）：优先用户自己的素材，其次公有领域 / CC；下载前告诉用户文件名、来源、大小、授权；片尾文献线索写清出处。
 
 原来只有这两套（B、C）。它们的色、字、版式、常驻元素、片名卡、声音都在 `references/worlds.md`。拿不准选 C；B 最费工。
@@ -232,11 +236,13 @@ python engine/render.py <工程目录> --jobs 4           # 全片，4 路并行
 | `references/analysis.md` | 四条参考片的结构、节奏、制作痕迹（外观和技术层面） |
 | `references/prompts.md` | 逆向出的提示词：完整 brief、分步提示词、返工话术 |
 | `references/engine.md` | 引擎 API、命令、写法、坑 |
-| `engine/` | `vk.js` `vk-kit.js` `vk-ledo.js`（ledo 的件）`vk-card.js`（card 的件）`render.py` `audio.py` `get_fonts.py`；`engine/brand/` 是飞行少年v 的 logo 和署名 |
+| `engine/` | `vk.js` `vk-kit.js` `vk-ledo.js`（ledo 的件）`vk-card.js`（card 的件）`render.py` `audio.py`（含 keben 的 flip / marker / wind 事件音） `get_fonts.py`；`engine/brand/` 是飞行少年v 的 logo 和署名 |
 | `references/ledo-reference-breakdown.md` | ledo 的来源：一条 VibeSCI 参考片的分镜、卡点、动画、logo 拆解 |
 | `references/card.md` | **card** 外观：金框卡片 + 口播讲解——提示词（中英）、规格、件、结构、卡点、动效语法、旁白和混音、坑、返工话术 |
+| `references/keben.md` | **keben** 外观：真课本翻书 + 插图长成 3D + 荧光笔跟旁白——提示词（中英）、结构、画面规格、卡点、配音（测音高挑版）、混音、坑、返工话术、检查表 |
 | `references/UIDesign.md` | **UIDesign** 画法：液态玻璃 + UI 动效 + 灵动岛黑框——提示词（中英）、设计规格、动效语法、Canvas 做法、和三套外观怎么配 |
 | `scripts/new_film.py` | 建工程：`index.html` + 一份没有画面的 `film.js` 骨架 |
 | `scripts/card_voice.py` | card 的旁白：`narration.json` → 逐句 TTS（缓存、限速）→ `audio/voice.wav` + `voice_subs.js` + SRT；`--estimate` 不调 TTS |
+| `scripts/keben_pages.py` `keben_voice.py` `keben_mix.py` | keben：PDF → 页面贴图（核对配对）；旁白 tts / stats（每截音高）/ place（排拍子，`--estimate` 占位）/ ask；事件音 + 混音 + 三样交付 |
 | `scripts/make_storyboard.py` | 分镜图：现渲关键帧 → 总览 + 每镜大图 + 前后对比 → `storyboardN.html`（第 6 步，出视频前必做） |
 | `examples/` | 看别人怎么做过一次，不是零件库。`fold_C`（夜曲，《折叠》开头 33 秒）和 `pigeon_B`（寓言，《鸽子的迷信》开头 33 秒）：自己题目的样片，各带分镜表；`fold_old_vs_new.jpg`：同一段内容的两版对照；两段对照参考片做的复刻；一张货架图；`look_*.jpg` 是各自的拼图 |

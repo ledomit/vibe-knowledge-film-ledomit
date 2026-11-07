@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.mp4
 *.wav
+
+# keben 示例：课本页面和插图有版权，不进仓库（用 scripts/keben_pages.py 从用户的 PDF 渲）
+examples/keben_demo/assets/
